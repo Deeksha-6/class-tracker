@@ -7,7 +7,7 @@ const METHODS = ['Cash', 'Card', 'Bank transfer', 'Zelle', 'Venmo', 'UPI', 'Othe
 const EXPENSE_CATS = ['Supplies', 'Rent', 'Utilities', 'Marketing', 'Salary', 'Other'];
 
 const S = { students: [], classes: [], attendance: [], payments: [], expenses: [], works: [] };
-const ui = { tab: 'classes', studentId: null, q: '', payFilter: '', artFilter: '', month: '' };
+const ui = { tab: 'home', studentId: null, q: '', payFilter: '', artFilter: '', month: '' };
 const urls = new Map(); // work id -> object URL
 
 /* ---------- helpers ---------- */
@@ -19,8 +19,41 @@ const fd = (d) => d ? new Date(d + 'T12:00').toLocaleDateString(undefined, { wee
 const sum = (a) => a.reduce((t, n) => t + (Number(n) || 0), 0);
 const byName = (a, b) => a.name.localeCompare(b.name);
 const byDateDesc = (a, b) => (b.date || '').localeCompare(a.date || '');
-let CUR = '$';
-try { CUR = localStorage.getItem('ct-currency') || '$'; } catch (e) { /* storage unavailable */ }
+let CUR = '$', TEACHER = '';
+try { CUR = localStorage.getItem('ct-currency') || '$'; TEACHER = localStorage.getItem('ct-name') || ''; } catch (e) { /* storage unavailable */ }
+const nowHM = () => { const d = new Date(); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+const fmtT = (t) => { if (!/^\d\d:\d\d$/.test(t || '')) return t || ''; let [h, m] = t.split(':').map(Number); const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; return `${h}:${String(m).padStart(2, '0')} ${ap}`; };
+const timeRange = (c) => c.start ? fmtT(c.start) + (c.end ? ' – ' + fmtT(c.end) : '') : (c.time || '');
+const byStart = (a, b) => (a.start || a.time || '').localeCompare(b.start || b.time || '');
+const daysSince = (d) => Math.floor((new Date(today() + 'T12:00') - new Date(d + 'T12:00')) / 864e5);
+function classStatus(c) {
+  const t = today();
+  if (c.date < t) return 'done';
+  if (c.date > t || !c.start) return 'upcoming';
+  const n = nowHM();
+  if (n < c.start) return 'upcoming';
+  if (!c.end || n <= c.end) return 'live';
+  return 'done';
+}
+const STATUS = { live: ['In progress', 'live'], upcoming: ['Upcoming', 'up'], done: ['Finished', 'done'] };
+const ic = (d) => `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const I = {
+  home: ic('<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>'),
+  check: ic('<circle cx="9" cy="7" r="4"/><path d="M2 21v-1a6 6 0 0 1 9-5.2"/><path d="m15 18 2 2 4-4"/>'),
+  users: ic('<circle cx="9" cy="7" r="4"/><path d="M2 21v-1a7 7 0 0 1 14 0v1"/><path d="M17 3.5a4 4 0 0 1 0 7"/><path d="M22 21v-1a6 6 0 0 0-3-5"/>'),
+  addUser: ic('<circle cx="9" cy="7" r="4"/><path d="M2 21v-1a7 7 0 0 1 14 0v1"/><path d="M19 8v6M16 11h6"/>'),
+  image: ic('<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/>'),
+  upload: ic('<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M12 18v-6M9 15l3-3 3 3"/>'),
+  cash: ic('<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/>'),
+  shield: ic('<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>'),
+  book: ic('<path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/>'),
+  clock: ic('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'),
+  pin: ic('<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/>'),
+  coin: ic('<path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>'),
+  arrow: ic('<path d="M5 12h14M13 6l6 6-6 6"/>'),
+  cal: ic('<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>'),
+  alert: ic('<circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/>'),
+};
 const money = (n) => (n < 0 ? '-' : '') + CUR + Math.abs(Number(n) || 0).toFixed(2);
 const sById = (id) => S.students.find((s) => s.id === id);
 const av = (s) => `<div class="av" style="background:${esc(s.color || COL[0])}">${esc((s.name || '?')[0].toUpperCase())}</div>`;
@@ -105,24 +138,97 @@ function notify(message) {
 }
 
 /* ---------- render ---------- */
-const TABS = [['classes', 'Classes'], ['students', 'Students'], ['payments', 'Payments'], ['gallery', 'Gallery'], ['books', 'Books']];
+const TABS = [['home', 'Dashboard', 'home'], ['classes', 'Attendance', 'check'], ['students', 'Students', 'users'], ['gallery', 'Gallery', 'image'], ['payments', 'Fees', 'coin']];
 function render() {
-  $('#nav').innerHTML = TABS.map(([k, l]) => `<button class="${ui.tab === k ? 'on' : ''}" data-go="${k}">${l}</button>`).join('');
-  const views = { classes: vClasses, students: ui.studentId ? vStudent : vStudents, payments: vPayments, gallery: vGallery, books: vBooks };
+  const cur = ui.tab === 'books' ? 'payments' : ui.tab;
+  $('#nav').innerHTML = TABS.map(([k, l, i]) => `<button class="${cur === k ? 'on' : ''}" data-go="${k}" ${cur === k ? 'aria-current="page"' : ''}><span>${I[i]}</span>${l}</button>`).join('');
+  const views = { home: vHome, classes: vClasses, students: ui.studentId ? vStudent : vStudents, payments: vPayments, gallery: vGallery, books: vBooks };
   $('#app').innerHTML = views[ui.tab]();
 }
 function go(tab) { ui.tab = tab; ui.studentId = null; render(); scrollTo(0, 0); }
 
+/* ---------- dashboard ---------- */
+function feeStatus() {
+  const owing = S.students.filter(isActive).map((s) => {
+    const x = summary(s);
+    const last = S.payments.filter((p) => p.studentId === s.id).map((p) => p.date).sort().pop()
+      || S.classes.filter((c) => S.attendance.some((a) => a.id === c.id + '_' + s.id)).map((c) => c.date).sort()[0] || today();
+    return { s, ...x, overdue: daysSince(last) > 15 };
+  }).filter((x) => x.balance < -0.004);
+  return { owing, due: sum(owing.map((x) => -x.balance)), overdue: owing.filter((x) => x.overdue).length };
+}
+function schedItem(c) {
+  const st = classStatus(c), [label, cls] = STATUS[st];
+  const here = S.students.filter((s) => S.attendance.some((a) => a.id === c.id + '_' + s.id));
+  const [h, ap] = c.start ? fmtT(c.start).replace(/:\d\d/, '').split(' ') : ['—', ''];
+  return `<article class="tl ${cls}"><div class="row top">
+    <div class="hour h-${cls}"><b>${esc(h.padStart(2, '0'))}</b><span>${ap}</span></div>
+    <div class="grow"><h3>${esc(c.topic || 'Class')}</h3><span class="pill p-${cls}">${label}</span>
+    <div class="meta">${timeRange(c) ? `<span>${I.clock}${esc(timeRange(c))}</span>` : ''}${c.location ? `<span>${I.pin}${esc(c.location)}</span>` : ''}</div></div></div>
+    <div class="row sp foot"><div class="stack">${here.slice(0, 2).map(av).join('')}${here.length > 2 ? `<div class="av more">+${here.length - 2}</div>` : ''}
+    ${here.length ? '' : '<span class="mu">Nobody checked in yet</span>'}</div>
+    <button class="${st === 'live' ? 'pri' : 'soft'}" data-act="openClass" data-id="${c.id}">${I.check}${st === 'done' ? 'Review' : st === 'live' ? 'Check-in' : 'Prepare'}</button></div></article>`;
+}
+function vHome() {
+  const t = today(), h = new Date().getHours();
+  const hi = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  const fees = feeStatus();
+  const todays = S.classes.filter((c) => c.date === t).sort(byStart);
+  const active = S.students.filter(isActive).length;
+  const slots = todays.length * active;
+  const checked = sum(todays.map((c) => S.attendance.filter((a) => a.classId === c.id).length));
+  const live = todays.filter((c) => classStatus(c) === 'live').length, up = todays.filter((c) => classStatus(c) === 'upcoming').length;
+  const recent = [...S.works].sort(byDateDesc).slice(0, 4);
+  return `<header class="hello">
+    <div class="row"><div class="me">${esc((TEACHER || 'S')[0].toUpperCase())}</div><div class="grow"><p class="greet">${hi}${TEACHER ? ', ' + esc(TEACHER) : ''}</p>
+    <p class="mu">${new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}</p></div></div>
+    <p class="eyebrow"><i class="dot"></i>Studio command hub</p><h1>Daily operations overview</h1>
+    <span class="pill p-live">${active} active student${active === 1 ? '' : 's'}</span></header>
+
+  <section class="tile peach">
+    <div class="row sp"><span class="label">Pending fees</span><span class="tile-ic">${I.cash}</span></div>
+    <p class="num">${money(fees.due)} <small>/ ${fees.owing.length} student${fees.owing.length === 1 ? '' : 's'}</small></p>
+    <div class="row sp"><span class="${fees.overdue ? 'warn' : 'mu'}">${fees.overdue ? I.alert + fees.overdue + ' overdue over 15 days' : 'Nothing overdue'}</span>
+    <button class="brown" data-go="payments">Follow up ${I.arrow}</button></div></section>
+
+  <section class="tile aqua">
+    <div class="row sp"><span class="label">Today's attendance</span><span class="tile-ic">${I.shield}</span></div>
+    <p class="num">${slots ? Math.round(checked / slots * 100) + '%' : '—'} <small>rate</small></p>
+    <span class="mu">${slots ? `${checked} checked in of ${slots}` : 'No classes scheduled today'}</span></section>
+
+  <section class="tile lilac">
+    <div class="row sp"><span class="label">Today's sessions</span><span class="tile-ic">${I.book}</span></div>
+    <p class="num">${todays.length} <small>class${todays.length === 1 ? '' : 'es'} scheduled</small></p>
+    <span class="mu">${live} ongoing · ${up} upcoming</span></section>
+
+  <p class="eyebrow">Studio actions</p>
+  <div class="actions-grid">
+    <button class="act teal" data-go="classes"><span class="act-ic">${I.check}</span><span><b>Take attendance</b><small>Mark who's here</small></span></button>
+    <button class="act peach" data-act="addStudent"><span class="act-ic">${I.addUser}</span><span><b>New student</b><small>Add to the roster</small></span></button>
+    <button class="act" data-go="gallery"><span class="act-ic">${I.upload}</span><span><b>Log art</b><small>Upload student work</small></span></button>
+    <button class="act" data-act="addPayment"><span class="act-ic lil">${I.coin}</span><span><b>Record payment</b><small>${fees.owing.length} with fees due</small></span></button>
+  </div>
+
+  <div class="row sp sect"><div><h2>Today's studio timeline</h2><p class="mu">Today's classes and who has checked in.</p></div>
+  <button class="link" data-act="addClass">${I.cal}Add class</button></div>
+  ${todays.map(schedItem).join('') || `<div class="emptybox"><p>No classes today.</p><button class="pri" data-act="addClass">Schedule a class</button></div>`}
+
+  <div class="row sp sect"><div><h2>Student showcase</h2><p class="mu">Latest work uploaded from your classes.</p></div>
+  <button class="link" data-go="gallery">Full gallery ${I.arrow}</button></div>
+  ${recent.length ? gallery(recent, true) : `<div class="emptybox"><p>No artwork yet.</p><button class="soft" data-go="gallery">${I.upload}Upload artwork</button></div>`}`;
+}
+
 /* ---------- classes & attendance ---------- */
 function vClasses() {
   const active = S.students.filter(isActive).sort(byName);
-  const cs = [...S.classes].sort((a, b) => b.date.localeCompare(a.date) || (b.time || '').localeCompare(a.time || ''));
-  return `<h1>Classes</h1><p class="sub">Add a class, then tap each student to mark them present.</p>
-  <div class="card"><div class="two"><input id="cd" type="date" value="${today()}" aria-label="Class date"><input id="ct" placeholder="Time, e.g. 4:00 PM" aria-label="Class time"></div>
-  <input id="cp" placeholder="Topic (optional)" aria-label="Topic"><button class="pri" data-act="addClass">Add class</button></div>
+  const cs = [...S.classes].sort((a, b) => b.date.localeCompare(a.date) || byStart(b, a));
+  return `<div class="row sp"><div><p class="eyebrow">Attendance</p><h1>Classes</h1></div><button class="pri" data-act="addClass">+ Add class</button></div>
+  <p class="sub">Tap each student to mark them present.</p>
   ${cs.map((c) => {
     const here = S.attendance.filter((a) => a.classId === c.id).length;
-    return `<div class="card"><div class="row sp"><div><b>${fd(c.date)}</b> <span class="mu">${esc(c.time)}</span><div class="mu">${esc(c.topic)}</div></div>
+    const [label, cls] = STATUS[classStatus(c)];
+    return `<div class="card" id="class-${c.id}"><div class="row sp top"><div><b>${esc(c.topic || 'Class')}</b> <span class="pill p-${cls}">${label}</span>
+      <div class="mu">${fd(c.date)}${timeRange(c) ? ' · ' + esc(timeRange(c)) : ''}${c.location ? ' · ' + esc(c.location) : ''}</div></div>
       <div class="row"><span class="chip neutral">${here} present</span><button class="x" data-act="editClass" data-id="${c.id}">Edit</button><button class="x" data-act="delClass" data-id="${c.id}" aria-label="Delete class">✕</button></div></div>
       <div style="margin-top:10px">${active.length ? active.map((s) => {
         const p = S.attendance.some((a) => a.id === c.id + '_' + s.id);
@@ -130,6 +236,14 @@ function vClasses() {
       }).join('') + `<button data-act="allPresent" data-id="${c.id}">Mark everyone present</button>` : '<p class="mu">Add students first.</p>'}</div></div>`;
   }).join('') || '<p class="empty">No classes yet. Add your first one above.</p>'}`;
 }
+
+const classFields = () => [
+  { name: 'topic', label: 'Class name', required: true },
+  { name: 'date', label: 'Date', type: 'date', required: true, default: today() },
+  { name: 'start', label: 'Starts', type: 'time' },
+  { name: 'end', label: 'Ends', type: 'time' },
+  { name: 'location', label: 'Room or location' },
+];
 
 /* ---------- students ---------- */
 const studentFields = () => [
@@ -205,8 +319,9 @@ function payTable(pays, withStudent) {
 function vPayments() {
   const pays = S.payments.filter((p) => !ui.payFilter || p.studentId === ui.payFilter).sort(byDateDesc);
   const owing = S.students.filter(isActive).map((s) => ({ s, ...summary(s) })).filter((x) => x.balance < -0.004).sort((a, b) => a.balance - b.balance);
-  return `<div class="row sp"><h1>Payments</h1><button class="pri" data-act="addPayment" ${S.students.length ? '' : 'disabled'}>+ Record payment</button></div>
+  return `<div class="row sp"><div><p class="eyebrow">Fees</p><h1>Payments</h1></div><button class="pri" data-act="addPayment" ${S.students.length ? '' : 'disabled'}>+ Record payment</button></div>
   <p class="sub">Record each payment as paid before classes (prepaid) or after classes. Tap Edit to change one.</p>
+  <button class="act wide" data-go="books"><span class="act-ic lil">${I.book}</span><span><b>Books & expenses</b><small>Monthly income, expenses, export and backup</small></span>${I.arrow}</button>
   <h2>Payment due</h2>
   ${owing.length ? owing.map((x) => `<button class="card tog" data-open="${x.s.id}">${av(x.s)}<span class="grow"><b>${esc(x.s.name)}</b><span class="mu" style="display:block">${x.attended} classes · paid ${money(x.paid)}</span></span>${balChip(x.balance)}</button>`).join('') : '<p class="mu">Nobody owes anything right now.</p>'}
   <div class="row sp"><h2>History</h2><select id="payFilter" style="width:auto;margin:0" aria-label="Filter by student">${studentOptions(ui.payFilter, true)}</select></div>
@@ -218,12 +333,13 @@ function urlFor(w) {
   if (!urls.has(w.id)) urls.set(w.id, URL.createObjectURL(w.blob));
   return urls.get(w.id);
 }
-function gallery(works) {
+function gallery(works, compact) {
   return `<div class="grid">${works.map((w) => {
     const s = sById(w.studentId);
-    return `<figure><a href="${urlFor(w)}" target="_blank" rel="noopener"><img src="${urlFor(w)}" alt="${esc(w.title || 'Student work')}" loading="lazy"></a>
-    <figcaption><b>${esc(w.title || 'Untitled')}</b><div class="mu">${s ? esc(s.name) + ' · ' : ''}${esc(fd(w.date))}</div>
-    <button class="x" data-act="delWork" data-id="${w.id}">Delete</button></figcaption></figure>`;
+    return `<figure class="art"><a href="${urlFor(w)}" target="_blank" rel="noopener"><img src="${urlFor(w)}" alt="${esc(w.title || 'Student work')}" loading="lazy"></a>
+    <figcaption><div class="row sp"><span class="who">${s ? esc(s.name) : ''}</span><span class="mu">${esc(w.medium || '')}</span></div>
+    <b>${esc(w.title || 'Untitled')}</b><div class="row sp"><span class="mu">${esc(fd(w.date))}</span>
+    ${compact ? '' : `<button class="x" data-act="delWork" data-id="${w.id}">Delete</button>`}</div></figcaption></figure>`;
   }).join('')}</div>`;
 }
 function vGallery() {
@@ -231,6 +347,7 @@ function vGallery() {
   return `<h1>Gallery</h1><p class="sub">Upload photos of each student's work.</p>
   ${S.students.length ? `<div class="card"><select id="ws" aria-label="Student">${studentOptions(ui.artFilter || '')}</select>
   <div class="two"><input id="wd" type="date" value="${today()}" aria-label="Date"><input id="wt" placeholder="Title (optional)" aria-label="Title"></div>
+  <input id="wm" placeholder="Medium, e.g. Watercolor (optional)" aria-label="Medium">
   <input id="wf" type="file" accept="image/*" multiple aria-label="Photos"><button class="pri" data-act="upload" id="wb">Upload photos</button></div>` : '<p class="mu">Add students first.</p>'}
   <div class="row sp"><h2>Work</h2><select id="artFilter" style="width:auto;margin:0" aria-label="Filter by student">${studentOptions(ui.artFilter, true)}</select></div>
   ${works.length ? gallery(works) : '<p class="empty">No photos yet.</p>'}`;
@@ -269,7 +386,7 @@ function vBooks() {
   const tin = sum(rows.map((r) => r.inAmt)), tout = sum(rows.map((r) => r.outAmt));
   const allIn = sum(S.payments.map((p) => p.amount)), allOut = sum(S.expenses.map((x) => x.amount));
   const owed = sum(S.students.map((s) => Math.max(0, -summary(s).balance)));
-  return `<div class="row sp"><h1>Books</h1><button class="pri" data-act="addExpense">+ Add expense</button></div>
+  return `<button class="x" data-go="payments">← Fees</button><div class="row sp"><h1>Books</h1><button class="pri" data-act="addExpense">+ Add expense</button></div>
   <p class="sub">Income comes from recorded payments. Add your class expenses here.</p>
   <input id="month" type="month" value="${m}" aria-label="Month">
   <div class="stats">${stat('Income', `<span class="in">${money(tin)}</span>`)}${stat('Expenses', `<span class="out">${money(tout)}</span>`)}${stat('Net', money(tin - tout))}</div>
@@ -283,7 +400,8 @@ function vBooks() {
   <h2>All time</h2>
   <div class="stats">${stat('Total income', money(allIn))}${stat('Total expenses', money(allOut))}${stat('Net', money(allIn - allOut))}${stat('Still owed to you', money(owed))}</div>
   <h2>Settings & backup</h2>
-  <div class="card"><label>Currency symbol<input id="currency" value="${esc(CUR)}" maxlength="4" style="max-width:120px"></label>
+  <div class="card"><label>Your name (shown on the dashboard)<input id="tname" value="${esc(TEACHER)}" maxlength="40"></label>
+  <label>Currency symbol<input id="currency" value="${esc(CUR)}" maxlength="4" style="max-width:120px"></label>
   <p class="mu">Your data lives in this browser only. Download a backup regularly, and use Restore to move it to another device.</p>
   <div class="row wrap"><button data-act="backup">Download backup</button><label class="row" style="margin:0"><span class="chip neutral" style="padding:10px 14px">Restore from backup</span><input id="restore" type="file" accept="application/json,.json" hidden></label></div></div>`;
 }
@@ -299,13 +417,18 @@ const blobToDataUrl = (b) => new Promise((r, j) => { const f = new FileReader();
 /* ---------- actions ---------- */
 const actions = {
   async addClass() {
-    const date = $('#cd').value; if (!date) return;
-    await save('classes', { id: nid(), date, time: $('#ct').value.trim(), topic: $('#cp').value.trim() });
+    const v = await formModal('Add class', classFields(), {}, 'Add class');
+    if (v) await save('classes', { id: nid(), ...v });
   },
   async editClass({ id }) {
     const c = S.classes.find((x) => x.id === id);
-    const v = await formModal('Edit class', [{ name: 'date', label: 'Date', type: 'date', required: true }, { name: 'time', label: 'Time' }, { name: 'topic', label: 'Topic' }], c);
-    if (v) await save('classes', { ...c, ...v });
+    const v = await formModal('Edit class', classFields(), c);
+    if (v) { delete c.time; await save('classes', { ...c, ...v }); }
+  },
+  openClass({ id }) {
+    go('classes');
+    const el = document.getElementById('class-' + id);
+    if (el) el.scrollIntoView({ block: 'start' });
   },
   async delClass({ id }) {
     if (!await ask('Delete this class and its attendance?')) return;
@@ -357,7 +480,7 @@ const actions = {
     try {
       for (const f of files) {
         const blob = await shrink(f);
-        await db.put('works', { id: nid(), studentId, date: $('#wd').value || today(), title: $('#wt').value.trim(), blob });
+        await db.put('works', { id: nid(), studentId, date: $('#wd').value || today(), title: $('#wt').value.trim(), medium: $('#wm').value.trim(), blob });
       }
     } catch (e) { notify('Upload failed: ' + (e.message || e)); }
     await refresh();
@@ -433,6 +556,7 @@ document.addEventListener('change', (e) => {
   else if (t.id === 'artFilter') { ui.artFilter = t.value; render(); }
   else if (t.id === 'month') { ui.month = t.value || today().slice(0, 7); render(); }
   else if (t.id === 'currency') { setCurrency(t.value); render(); }
+  else if (t.id === 'tname') { TEACHER = t.value.trim(); try { localStorage.setItem('ct-name', TEACHER); } catch (e) { /* ignore */ } render(); }
   else if (t.id === 'restore' && t.files[0]) restore(t.files[0]);
 });
 

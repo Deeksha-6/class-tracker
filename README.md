@@ -4,10 +4,11 @@ A simple web app for running classes: students, attendance, payments, photos of 
 
 ## Features
 
-- **Classes and attendance**: add a class (date, time, topic) and tap each student to mark them present. There's also a "mark everyone present" button.
+- **Dashboard**: greeting, pending fees (with overdue count), today's attendance rate, today's sessions, quick studio actions, today's class timeline with check-in status, and the latest student artwork.
+- **Classes and attendance**: add a class (name, date, start and end time, room) and tap each student to mark them present. There's also a "mark everyone present" button.
 - **Students**: name, phone, parent/guardian, email, fee per class, join date, active/inactive and notes. Each student has a page with their attendance history, payments, balance and work.
 - **Payments**: record payments as **before classes (prepaid, with the number of classes covered)** or **after classes**. Payments can be edited at any time. The app tracks prepaid classes used and remaining, and shows who owes money.
-- **Gallery**: upload photos of each student's work, several at a time. Photos are resized automatically.
+- **Gallery**: upload photos of each student's work (with title and medium), several at a time. Photos are resized automatically.
 - **Books**: monthly ledger of income (payments) and expenses, with all-time totals, the amount still owed to you, and CSV export.
 - **Backup and restore**: download all data, photos included, as one file, and restore it on another device.
 
