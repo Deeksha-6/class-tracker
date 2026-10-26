@@ -85,6 +85,25 @@ function formModal(title, fields, values = {}, okLabel = 'Save') {
   });
 }
 
+
+/* in-page confirm / message (browser pop-ups are blocked in some viewers) */
+function ask(message, okLabel = 'Delete') {
+  return new Promise((resolve) => {
+    const dlg = $('#modal'), form = $('#modal-form');
+    form.innerHTML = `<p style="margin:0 0 12px">${esc(message)}</p>
+      <div class="actions"><button value="cancel" formnovalidate>Cancel</button><button value="ok" class="pri danger">${esc(okLabel)}</button></div>`;
+    dlg.returnValue = '';
+    dlg.onclose = () => resolve(dlg.returnValue === 'ok');
+    dlg.showModal();
+  });
+}
+function notify(message) {
+  const dlg = $('#modal'), form = $('#modal-form');
+  form.innerHTML = `<p style="margin:0 0 12px">${esc(message)}</p><div class="actions"><button value="ok" class="pri">OK</button></div>`;
+  dlg.onclose = null;
+  dlg.showModal();
+}
+
 /* ---------- render ---------- */
 const TABS = [['classes', 'Classes'], ['students', 'Students'], ['payments', 'Payments'], ['gallery', 'Gallery'], ['books', 'Books']];
 function render() {
@@ -289,7 +308,7 @@ const actions = {
     if (v) await save('classes', { ...c, ...v });
   },
   async delClass({ id }) {
-    if (!confirm('Delete this class and its attendance?')) return;
+    if (!await ask('Delete this class and its attendance?')) return;
     for (const a of S.attendance.filter((a) => a.classId === id)) await db.del('attendance', a.id);
     await remove('classes', id);
   },
@@ -313,7 +332,7 @@ const actions = {
   },
   async delStudent({ id }) {
     const s = sById(id);
-    if (!confirm(`Delete ${s.name} and all their attendance, payments and photos? This can't be undone.`)) return;
+    if (!await ask(`Delete ${s.name} and all their attendance, payments and photos? This can't be undone.`)) return;
     for (const a of S.attendance.filter((a) => a.studentId === id)) await db.del('attendance', a.id);
     for (const p of S.payments.filter((p) => p.studentId === id)) await db.del('payments', p.id);
     for (const w of S.works.filter((w) => w.studentId === id)) await db.del('works', w.id);
@@ -330,21 +349,21 @@ const actions = {
     const v = await formModal('Edit payment', paymentFields(p.studentId), p);
     if (v) await save('payments', { ...p, ...v });
   },
-  async delPayment({ id }) { if (confirm('Delete this payment?')) await remove('payments', id); },
+  async delPayment({ id }) { if (await ask('Delete this payment?')) await remove('payments', id); },
   async upload() {
     const files = [...$('#wf').files], studentId = $('#ws').value;
-    if (!files.length || !studentId) { alert('Choose a student and at least one photo.'); return; }
+    if (!files.length || !studentId) { notify('Choose a student and at least one photo.'); return; }
     const b = $('#wb'); b.disabled = true; b.textContent = 'Uploading…';
     try {
       for (const f of files) {
         const blob = await shrink(f);
         await db.put('works', { id: nid(), studentId, date: $('#wd').value || today(), title: $('#wt').value.trim(), blob });
       }
-    } catch (e) { alert('Upload failed: ' + (e.message || e)); }
+    } catch (e) { notify('Upload failed: ' + (e.message || e)); }
     await refresh();
   },
   async delWork({ id }) {
-    if (!confirm('Delete this photo?')) return;
+    if (!await ask('Delete this photo?')) return;
     if (urls.has(id)) { URL.revokeObjectURL(urls.get(id)); urls.delete(id); }
     await remove('works', id);
   },
@@ -357,7 +376,7 @@ const actions = {
     const v = await formModal('Edit expense', expenseFields(), x);
     if (v) await save('expenses', { ...x, ...v });
   },
-  async delExpense({ id }) { if (confirm('Delete this expense?')) await remove('expenses', id); },
+  async delExpense({ id }) { if (await ask('Delete this expense?')) await remove('expenses', id); },
   exportCsv() {
     const rows = ledger(ui.month);
     const lines = [['Date', 'Type', 'Description', 'In', 'Out'], ...rows.map((r) => [r.date, r.kind === 'pay' ? 'Income' : 'Expense', r.desc, r.inAmt || '', r.outAmt || ''])];
@@ -373,9 +392,9 @@ const actions = {
 
 async function restore(file) {
   let data;
-  try { data = JSON.parse(await file.text()); } catch (e) { alert('That file is not a valid backup.'); return; }
-  if (data.app !== 'class-tracker') { alert('That file is not a Class Tracker backup.'); return; }
-  if (!confirm('Replace ALL current data with this backup?')) return;
+  try { data = JSON.parse(await file.text()); } catch (e) { notify('That file is not a valid backup.'); return; }
+  if (data.app !== 'class-tracker') { notify('That file is not a Class Tracker backup.'); return; }
+  if (!await ask('Replace ALL current data with this backup?', 'Replace')) return;
   for (const k of Object.keys(S)) {
     await db.clear(k);
     for (const item of data[k] || []) {
@@ -388,7 +407,7 @@ async function restore(file) {
   if (data.currency) setCurrency(data.currency);
   urls.forEach((u) => URL.revokeObjectURL(u)); urls.clear();
   await refresh();
-  alert('Backup restored.');
+  notify('Backup restored.');
 }
 function setCurrency(v) {
   CUR = v.trim() || '$';

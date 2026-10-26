@@ -3,14 +3,20 @@
   --accent: #3347D6; --on-accent: #fff; --ok: #1E8E5A; --bad: #C93B3B;
 }
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #12162A; --card: #1C2240; --ink: #EEF0F8; --mute: #9AA3C0; --line: #2D3558;
-    --accent: #8C9BFF; --on-accent: #12162A; --ok: #4CC38A; --bad: #FF7A7A;
+    --accent: #8C9BFF; --on-accent: #12162A; --ok: #4CC38A; --bad: #FF7A7A; color-scheme: dark;
   }
 }
+:root[data-theme="dark"] {
+  --bg: #12162A; --card: #1C2240; --ink: #EEF0F8; --mute: #9AA3C0; --line: #2D3558;
+  --accent: #8C9BFF; --on-accent: #12162A; --ok: #4CC38A; --bad: #FF7A7A; color-scheme: dark;
+}
+button.danger { background: var(--bad); border-color: var(--bad); color: var(--bg); }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 'DM Sans', system-ui, sans-serif; }
-main { max-width: 640px; margin: 0 auto; padding: 16px 16px 96px; }
+main { max-width: 640px; margin: 0 auto; padding-block: 16px 96px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 h1, h2, h3 { font-family: 'Bricolage Grotesque', system-ui, sans-serif; margin: 0; }
 h1 { font-size: 28px; }
 h2 { font-size: 20px; margin: 22px 0 10px; }
