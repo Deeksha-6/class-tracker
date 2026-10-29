@@ -21,6 +21,7 @@ Class Pouch is a group app for classes and hobbies such as art, dance, sports, m
 - **Members**: contact details, guardian, fee per session (override for a different rate), active or inactive, notes, and a profile with full history.
 - **Payments**: record payments as **prepaid** (with the number of sessions covered) or **after attending**. Payments can be edited. The app tracks prepaid sessions left and who owes money.
 - **Photos**: upload photos for each member, with a title and tag. Photos are resized automatically.
+- **Venmo payments**: each group can show a Venmo QR code and username. Members see the code, the amount they owe and an "Open Venmo" button with the amount and a note filled in. Payments are still recorded by the organizer.
 - **Books**: monthly income and expenses for each group, all-time totals, and CSV export.
 - **Backup and restore**: one JSON file holds all groups, photos included.
 

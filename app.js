@@ -239,6 +239,15 @@ function vGroup() {
   <p class="sub">See exactly what one ${lc(T.member)} or their parent would see.</p>
   ${members.length ? `<div class="row"><select id="previewAs" aria-label="Member to preview">${members.map((m) => `<option value="${m.id}">${esc(m.name)}</option>`).join('')}</select>
   <button class="soft" data-act="startPreview" style="margin-bottom:8px">${I.eye}Preview</button></div>` : `<p class="mu">Add ${lc(pl(T.member))} first.</p>`}
+  <h2>Payments by Venmo</h2>
+  <p class="sub">Members see this QR code and the amount they owe in their view.</p>
+  <div class="card venmo-set">
+    ${payBox(G, 0, '') || '<p class="mu" style="margin:0 0 10px">No Venmo details yet.</p>'}
+    <label>Venmo username<input id="venmoUser" placeholder="@your-name" value="${esc(G.venmo ? '@' + venmoUser(G) : '')}" autocomplete="off"></label>
+    <div class="row wrap"><label class="filebtn">${I.upload}${G.venmoQr ? 'Replace QR code' : 'Upload QR code'}<input id="venmoFile" type="file" accept="image/*" hidden></label>
+    ${G.venmoQr ? `<button class="x" data-act="removeQr">Remove QR</button>` : ''}</div>
+    <p class="mu">In the Venmo app, tap the Scan icon, then “Share my code”, or take a screenshot of your code.</p>
+  </div>
   <h2>Details</h2>
   <p class="sub">${G.fee ? `Fee for everyone: <b>${money(G.fee)}</b> per ${lc(T.session)}.` : `No group fee set. Set one to give every ${lc(T.member)} the same rate.`}</p>
   <div class="row wrap"><button data-act="editGroup">Edit name, activity and fee</button>
@@ -257,7 +266,8 @@ function vMember() {
     ${next ? `<p class="num">${esc(fd(next.date))}</p><span>${esc(next.topic || T.session)}${timeRange(next) ? ' · ' + esc(timeRange(next)) : ''}${next.location ? ' · ' + esc(next.location) : ''}</span>` : `<p class="num">Not scheduled yet</p>`}</section>
   <section class="tile peach"><div class="row sp"><span class="label">Fees</span><span class="tile-ic">${I.cash}</span></div>
     <p class="num">${x.balance < -0.004 ? money(-x.balance) : money(0)} <small>${x.balance < -0.004 ? 'due' : 'nothing due'}</small></p>
-    <span class="mu">${x.attended} ${lc(x.attended === 1 ? T.session : pl(T.session))} attended · paid ${money(x.paid)}${x.prepaid ? ` · ${Math.max(0, x.prepaidLeft)} prepaid left` : ''}</span></section>
+    <span class="mu">${x.attended} ${lc(x.attended === 1 ? T.session : pl(T.session))} attended · paid ${money(x.paid)}${x.prepaid ? ` · ${Math.max(0, x.prepaidLeft)} prepaid left` : ''}</span>
+    ${payBox(G, x.balance < -0.004 ? -x.balance : (Number(G.fee) || 0), `${s.name} – ${G.name}`)}</section>
   <h2>Attendance</h2>
   ${past.length ? past.map((c) => { const p = S.attendance.some((a) => a.id === c.id + '_' + s.id);
     return `<div class="card row sp"><span>${esc(fd(c.date))} <span class="mu">${esc(c.topic)}</span></span><span class="chip ${p ? 'ok' : 'bad'}">${p ? 'Present' : 'Absent'}</span></div>`; }).join('') : '<p class="mu">Nothing recorded yet.</p>'}
@@ -447,6 +457,21 @@ function vPayments() {
 }
 
 /* ---------- gallery ---------- */
+let qrUrl = { id: null, url: null };
+function venmoQr(g) {
+  if (!g.venmoQr) return '';
+  if (qrUrl.id !== g.id + g.qrStamp) { if (qrUrl.url) URL.revokeObjectURL(qrUrl.url); qrUrl = { id: g.id + g.qrStamp, url: URL.createObjectURL(g.venmoQr) }; }
+  return qrUrl.url;
+}
+const venmoUser = (g) => (g.venmo || '').replace(/^@/, '').trim();
+const venmoLink = (g, amount, note) => `https://venmo.com/${encodeURIComponent(venmoUser(g))}?txn=pay${amount > 0 ? '&amount=' + amount.toFixed(2) : ''}&note=${encodeURIComponent(note)}`;
+function payBox(g, amount, note) {
+  if (!g.venmoQr && !venmoUser(g)) return '';
+  return `<div class="paybox">${g.venmoQr ? `<img src="${venmoQr(g)}" alt="Venmo QR code for @${esc(venmoUser(g))}">` : ''}
+    <div class="grow"><b>Pay with Venmo</b>${venmoUser(g) ? `<span class="mu" style="display:block">@${esc(venmoUser(g))}</span>` : ''}
+    <span class="mu" style="display:block">${g.venmoQr ? 'Scan the code with your phone camera or the Venmo app.' : ''}${note ? ` Add the note: “${esc(note)}”.` : ''}</span>
+    ${venmoUser(g) ? `<a class="btn venmo" href="${esc(venmoLink(g, amount, note))}" target="_blank" rel="noopener">Open Venmo${amount > 0 ? ' · ' + money(amount) : ''}</a>` : ''}</div></div>`;
+}
 function urlFor(w) {
   if (!urls.has(w.id)) urls.set(w.id, URL.createObjectURL(w.blob));
   return urls.get(w.id);
@@ -576,6 +601,10 @@ const actions = {
     if (!await ask('Make a new invite code? The old link will stop working.', 'New code')) return;
     await db.put('groups', { ...G, code: mkcode() }); await refresh();
   },
+  async removeQr() {
+    if (!await ask('Remove the Venmo QR code from this group?', 'Remove')) return;
+    const g = { ...G }; delete g.venmoQr; await db.put('groups', g); await refresh();
+  },
   startPreview() { ui.preview = $('#previewAs').value; render(); scrollTo(0, 0); },
   previewMember({ id }) { ui.preview = id; render(); scrollTo(0, 0); },
   exitPreview() { ui.preview = null; render(); scrollTo(0, 0); },
@@ -671,6 +700,7 @@ const actions = {
   async backup() {
     const data = { app: 'class-pouch', version: 2, exported: new Date().toISOString(), currency: CUR };
     for (const k of Object.keys(ALL)) data[k] = await db.all(k);
+    data.groups = await Promise.all(data.groups.map(async (g) => g.venmoQr ? { ...g, venmoQr: undefined, venmoQrUrl: await blobToDataUrl(g.venmoQr) } : g));
     data.works = await Promise.all(data.works.map(async (w) => ({ ...w, blob: undefined, dataUrl: await blobToDataUrl(w.blob) })));
     download(`class-pouch-backup-${today()}.json`, JSON.stringify(data), 'application/json');
   },
@@ -684,7 +714,10 @@ async function restore(file) {
   for (const k of Object.keys(ALL)) {
     await db.clear(k);
     for (const item of data[k] || []) {
-      if (k === 'works') {
+      if (k === 'groups' && item.venmoQrUrl) {
+        const { venmoQrUrl, ...rest } = item;
+        await db.put('groups', { ...rest, venmoQr: await (await fetch(venmoQrUrl)).blob(), qrStamp: Date.now() });
+      } else if (k === 'works') {
         const { dataUrl, ...rest } = item;
         await db.put('works', { ...rest, blob: await (await fetch(dataUrl)).blob() });
       } else await db.put(k, item);
@@ -721,6 +754,8 @@ document.addEventListener('change', (e) => {
   else if (t.id === 'currency') { setCurrency(t.value); render(); }
   else if (t.id === 'tname') { TEACHER = t.value.trim(); try { localStorage.setItem('ct-name', TEACHER); } catch (e) { /* ignore */ } render(); }
   else if (t.id === 'restore' && t.files[0]) restore(t.files[0]);
+  else if (t.id === 'venmoUser') { db.put('groups', { ...G, venmo: t.value.trim().replace(/^@/, '') }).then(refresh); }
+  else if (t.id === 'venmoFile' && t.files[0]) shrink(t.files[0], 900).then((b) => db.put('groups', { ...G, venmoQr: b, qrStamp: Date.now() })).then(refresh);
 });
 
 const joinHash = () => { const m = /^#join-([A-Za-z0-9]+)$/.exec(location.hash); if (m) { history.replaceState(null, '', location.pathname); actions.joinGroup({ code: m[1] }); } };
