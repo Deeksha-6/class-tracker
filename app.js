@@ -554,7 +554,12 @@ function download(name, text, type) {
   a.download = name; a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
-const csvCell = (v) => /[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v);
+const csvCell = (v) => {
+  let t = String(v);
+  if (/^[=+\-@\t\r]/.test(t) && typeof v !== 'number') t = "'" + t; // stop spreadsheet formula injection
+  return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
+};
+const dataBlob = async (u) => { if (!/^data:image\//.test(u || '')) throw new Error('bad image'); return (await fetch(u)).blob(); };
 const blobToDataUrl = (b) => new Promise((r, j) => { const f = new FileReader(); f.onload = () => r(f.result); f.onerror = j; f.readAsDataURL(b); });
 
 /* ---------- actions ---------- */
@@ -716,10 +721,10 @@ async function restore(file) {
     for (const item of data[k] || []) {
       if (k === 'groups' && item.venmoQrUrl) {
         const { venmoQrUrl, ...rest } = item;
-        await db.put('groups', { ...rest, venmoQr: await (await fetch(venmoQrUrl)).blob(), qrStamp: Date.now() });
+        await db.put('groups', { ...rest, venmoQr: await dataBlob(venmoQrUrl), qrStamp: Date.now() });
       } else if (k === 'works') {
         const { dataUrl, ...rest } = item;
-        await db.put('works', { ...rest, blob: await (await fetch(dataUrl)).blob() });
+        await db.put('works', { ...rest, blob: await dataBlob(dataUrl) });
       } else await db.put(k, item);
     }
   }
