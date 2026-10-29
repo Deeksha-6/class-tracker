@@ -1,28 +1,44 @@
-# Class Tracker
+# Class Pouch
 
-A simple web app for running classes: students, attendance, payments, photos of students' work and bookkeeping. It works on phone and desktop.
+Class Pouch is a group app for classes and hobbies such as art, dance, sports, music, fitness and tutoring. Many of these run on WhatsApp groups today. Class Pouch gives each group one place for its schedule, attendance, fees and photos.
+
+> **Status: prototype.** All data is saved in the browser on one device. Invites only open groups saved on that device. Sharing between organizers and members on different phones needs the online backend (planned).
 
 ## Features
 
-- **Dashboard**: greeting, pending fees (with overdue count), today's attendance rate, today's sessions, quick studio actions, today's class timeline with check-in status, and the latest student artwork.
-- **Classes and attendance**: add a class (name, date, start and end time, room) and tap each student to mark them present. There's also a "mark everyone present" button.
-- **Students**: name, phone, parent/guardian, email, fee per class, join date, active/inactive and notes. Each student has a page with their attendance history, payments, balance and work.
-- **Payments**: record payments as **before classes (prepaid, with the number of classes covered)** or **after classes**. Payments can be edited at any time. The app tracks prepaid classes used and remaining, and shows who owes money.
-- **Gallery**: upload photos of each student's work (with title and medium), several at a time. Photos are resized automatically.
-- **Books**: monthly ledger of income (payments) and expenses, with all-time totals, the amount still owed to you, and CSV export.
-- **Backup and restore**: download all data, photos included, as one file, and restore it on another device.
+- **Groups**: create a group for each class or team, much like a Slack channel or WhatsApp group. All data belongs to one group. Each group has its own:
+  - members
+  - sessions and attendance
+  - fees
+  - photos
+  - books
+- **Activity-aware wording**: a Dance group says *Dancers*, a Sports group says *Players* and *Practice*, a Music group says *Lessons*.
+- **Invite links and codes**: every group has a 6-character code and a join link, with a copy button and a WhatsApp share button. You can make a new code to replace the old link.
+- **Member preview**: see exactly what one member or their parent would see: next session, their own attendance, dues and photos.
+- **Dashboard**: pending fees with an overdue count, today's attendance rate, today's sessions, quick actions, the day's timeline, and the latest photos.
+- **Sessions and attendance**: add a session (name, date, start and end time, location), then tap members to mark them present.
+- **Members**: contact details, guardian, fee per session, active or inactive, notes, and a profile with full history.
+- **Payments**: record payments as **prepaid** (with the number of sessions covered) or **after attending**. Payments can be edited. The app tracks prepaid sessions left and who owes money.
+- **Photos**: upload photos for each member, with a title and tag. Photos are resized automatically.
+- **Books**: monthly income and expenses for each group, all-time totals, and CSV export.
+- **Backup and restore**: one JSON file holds all groups, photos included.
 
 ## Running it
 
-No install or build is needed. Open `index.html` in a browser, or publish the repo with GitHub Pages (Settings → Pages → Deploy from branch → `main` / root).
+No install or build is needed. Open `index.html`, or turn on GitHub Pages (Settings → Pages → Deploy from branch → `main` / root).
 
-## Data
+## Architecture
 
-All data is stored in the browser on the device you use (IndexedDB). Nothing is sent to a server. Use **Books → Download backup** regularly.
+- `index.html`: the page shell
+- `styles.css`: styles, with light and dark themes
+- `db.js`: IndexedDB wrapper. Stores: `groups`, `students`, `classes`, `attendance`, `payments`, `expenses`, `works`. Every record has a `groupId`.
+- `app.js`: state, views and actions. It loads every store, then filters to the open group.
 
-## Files
+Class Tracker data from before groups were added is moved automatically into a first group called "My Art Class".
 
-- `index.html`: page shell
-- `styles.css`: styles, light and dark mode
-- `db.js`: IndexedDB storage
-- `app.js`: the app
+## Roadmap
+
+1. Online backend (Firebase or Supabase) with sign-in, so members join from their own phones.
+2. Roles enforced on the server: organizers see everything, members see only their own records.
+3. Announcements feed for class updates and cancellations, replacing the WhatsApp group.
+4. Fee reminders and online payments.

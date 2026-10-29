@@ -1,9 +1,9 @@
-// Tiny IndexedDB wrapper. All data stays in the browser on this device.
+// Tiny IndexedDB wrapper for Class Pouch. All data stays in the browser on this device.
 'use strict';
 
 const DB_NAME = 'class-tracker';
-const DB_VERSION = 1;
-const STORES = ['students', 'classes', 'attendance', 'payments', 'expenses', 'works'];
+const DB_VERSION = 2;
+const STORES = ['groups', 'students', 'classes', 'attendance', 'payments', 'expenses', 'works'];
 
 let dbPromise = null;
 

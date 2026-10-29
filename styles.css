@@ -169,3 +169,24 @@ dialog h2 { margin: 0 0 12px; }
 .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 @media (max-width: 360px) { .actions-grid { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+
+/* ---------- Class Pouch: groups ---------- */
+[hidden] { display: none !important; }
+.brand { display: flex; align-items: center; gap: 12px; margin: 6px 0 20px; }
+.logo { width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; background: var(--accent); color: var(--on-accent); flex: none; }
+.logo .ic { width: 24px; height: 24px; }
+.topbar { display: flex; align-items: center; gap: 10px; margin: -4px 0 18px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.topbar .grow { display: grid; line-height: 1.25; }
+.gname { font: 700 16px var(--display); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+button.icon { min-height: 40px; min-width: 40px; padding: 8px; color: var(--ink); }
+.gav { width: 36px; height: 36px; border-radius: 12px; flex: none; display: grid; place-items: center; color: #fff; font: 800 16px var(--display); }
+.gav.big { width: 48px; height: 48px; border-radius: 14px; font-size: 20px; }
+.gcard { width: 100%; justify-content: flex-start; text-align: left; gap: 12px; padding: 14px; font-weight: 400; }
+.gcard b { font: 700 16px var(--display); }
+.invite .code { font: 800 34px/1.1 var(--display); letter-spacing: .18em; color: var(--accent); margin: 2px 0 6px; font-variant-numeric: tabular-nums; }
+.invite input { background: var(--card); font-size: 13px; }
+a.btn { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 9px 14px; border-radius: 12px; font-weight: 600; text-decoration: none; }
+a.btn.soft { background: var(--accent-soft); color: var(--accent); }
+.teal-tile { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.teal-tile .label, .teal-tile .num { color: inherit; }
+.teal-tile .num { font-size: 26px; }
