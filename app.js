@@ -254,7 +254,7 @@ function vMember() {
     ${next ? `<p class="num">${esc(fd(next.date))}</p><span>${esc(next.topic || T.session)}${timeRange(next) ? ' · ' + esc(timeRange(next)) : ''}${next.location ? ' · ' + esc(next.location) : ''}</span>` : `<p class="num">Not scheduled yet</p>`}</section>
   <section class="tile peach"><div class="row sp"><span class="label">Fees</span><span class="tile-ic">${I.cash}</span></div>
     <p class="num">${x.balance < -0.004 ? money(-x.balance) : money(0)} <small>${x.balance < -0.004 ? 'due' : 'nothing due'}</small></p>
-    <span class="mu">${x.attended} ${lc(pl(T.session))} attended · paid ${money(x.paid)}${x.prepaid ? ` · ${Math.max(0, x.prepaidLeft)} prepaid left` : ''}</span></section>
+    <span class="mu">${x.attended} ${lc(x.attended === 1 ? T.session : pl(T.session))} attended · paid ${money(x.paid)}${x.prepaid ? ` · ${Math.max(0, x.prepaidLeft)} prepaid left` : ''}</span></section>
   <h2>Attendance</h2>
   ${past.length ? past.map((c) => { const p = S.attendance.some((a) => a.id === c.id + '_' + s.id);
     return `<div class="card row sp"><span>${esc(fd(c.date))} <span class="mu">${esc(c.topic)}</span></span><span class="chip ${p ? 'ok' : 'bad'}">${p ? 'Present' : 'Absent'}</span></div>`; }).join('') : '<p class="mu">Nothing recorded yet.</p>'}
