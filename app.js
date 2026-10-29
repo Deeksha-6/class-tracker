@@ -78,6 +78,7 @@ const money = (n) => (n < 0 ? '-' : '') + CUR + Math.abs(Number(n) || 0).toFixed
 const sById = (id) => S.students.find((s) => s.id === id);
 const av = (s) => `<div class="av" style="background:${esc(s.color || COL[0])}">${esc((s.name || '?')[0].toUpperCase())}</div>`;
 const isActive = (s) => s.active !== 'no';
+const feeOf = (s) => Number(s.fee) > 0 ? Number(s.fee) : (Number(ALL.groups.find((g) => g.id === s.groupId)?.fee) || 0);
 const studentOptions = (sel, withAll) =>
   (withAll ? `<option value="">All ${lc(pl(T.member))}</option>` : '') +
   [...S.students].sort(byName).map((s) => `<option value="${s.id}" ${s.id === sel ? 'selected' : ''}>${esc(s.name)}</option>`).join('');
@@ -87,7 +88,7 @@ function summary(s) {
   const pays = S.payments.filter((p) => p.studentId === s.id);
   const paid = sum(pays.map((p) => p.amount));
   const prepaid = sum(pays.filter((p) => p.timing === 'before').map((p) => p.classes));
-  const charged = attended * (Number(s.fee) || 0);
+  const charged = attended * feeOf(s);
   return { attended, paid, charged, balance: paid - charged, prepaid, prepaidLeft: prepaid - attended };
 }
 const balChip = (b) => b < -0.004 ? `<span class="chip bad">Owes ${money(-b)}</span>`
@@ -216,6 +217,7 @@ function vGroups() {
 const groupFields = () => [
   { name: 'name', label: 'Group name', required: true, placeholder: 'e.g. Saturday Kids Art' },
   { name: 'activity', label: 'Activity', type: 'select', default: 'art', options: Object.entries(ACTIVITIES).map(([value, a]) => ({ value, label: a.label })) },
+  { name: 'fee', label: `Fee per class for everyone (${CUR})`, type: 'number', hint: 'New members start with this fee.' },
   { name: 'about', label: 'About (optional)', type: 'textarea' },
 ];
 function vGroup() {
@@ -238,7 +240,8 @@ function vGroup() {
   ${members.length ? `<div class="row"><select id="previewAs" aria-label="Member to preview">${members.map((m) => `<option value="${m.id}">${esc(m.name)}</option>`).join('')}</select>
   <button class="soft" data-act="startPreview" style="margin-bottom:8px">${I.eye}Preview</button></div>` : `<p class="mu">Add ${lc(pl(T.member))} first.</p>`}
   <h2>Details</h2>
-  <div class="row wrap"><button data-act="editGroup">Edit name and activity</button>
+  <p class="sub">${G.fee ? `Fee for everyone: <b>${money(G.fee)}</b> per ${lc(T.session)}.` : `No group fee set. Set one to give every ${lc(T.member)} the same rate.`}</p>
+  <div class="row wrap"><button data-act="editGroup">Edit name, activity and fee</button>
   <button class="x" data-act="delGroup" style="color:var(--bad)">Delete group</button></div>`;
 }
 function vMember() {
@@ -365,7 +368,7 @@ const studentFields = () => [
   { name: 'phone', label: 'Phone', type: 'tel' },
   { name: 'guardian', label: 'Parent / guardian' },
   { name: 'email', label: 'Email', type: 'email' },
-  { name: 'fee', label: `Fee per ${lc(T.session)} (${CUR})`, type: 'number' },
+  { name: 'fee', label: `Fee per ${lc(T.session)} (${CUR})`, type: 'number', default: G?.fee || '', hint: G?.fee ? `Group fee is ${money(G.fee)}. Change it only for a different rate.` : '' },
   { name: 'joined', label: 'Joined on', type: 'date', default: today() },
   { name: 'active', label: 'Status', type: 'select', options: [{ value: 'yes', label: 'Active' }, { value: 'no', label: 'Inactive' }] },
   { name: 'notes', label: 'Notes', type: 'textarea' },
@@ -379,7 +382,7 @@ function vStudents() {
   ${list.map((s) => {
     const x = summary(s);
     return `<button class="card tog" data-open="${s.id}">${av(s)}<span class="grow"><b>${esc(s.name)}</b>${isActive(s) ? '' : ' <span class="chip neutral">Inactive</span>'}
-      <span class="mu" style="display:block">${x.attended} attended · ${money(s.fee || 0)}/${lc(T.session)}${x.prepaid ? ` · ${x.prepaidLeft} prepaid left` : ''}</span></span>${balChip(x.balance)}</button>`;
+      <span class="mu" style="display:block">${x.attended} attended · ${money(feeOf(s))}/${lc(T.session)}${x.prepaid ? ` · ${x.prepaidLeft} prepaid left` : ''}</span></span>${balChip(x.balance)}</button>`;
   }).join('') || `<p class="empty">${S.students.length ? 'No match.' : `No ${lc(pl(T.member))} yet. Add your first one.`}</p>`}`;
 }
 function vStudent() {
@@ -395,7 +398,7 @@ function vStudent() {
   <div class="row"><button data-act="editStudent" data-id="${s.id}">Edit</button><button class="pri" data-act="addPayment" data-student="${s.id}">+ Payment</button></div></div>
   <div class="card">${info.map(([k, v]) => `<div class="row sp"><span class="mu">${k}</span><span>${esc(v)}</span></div>`).join('') || '<span class="mu">No contact details yet.</span>'}
   ${s.notes ? `<p style="margin:8px 0 0">${esc(s.notes)}</p>` : ''}</div>
-  <div class="stats">${stat('Attended', x.attended)}${stat('Fee per ' + lc(T.session), money(s.fee || 0))}${stat('Total paid', money(x.paid))}${stat('Charged', money(x.charged))}
+  <div class="stats">${stat('Attended', x.attended)}${stat('Fee per ' + lc(T.session), money(feeOf(s)))}${stat('Total paid', money(x.paid))}${stat('Charged', money(x.charged))}
   ${x.prepaid ? stat('Prepaid classes', `${x.prepaidLeft} of ${x.prepaid} left`) : ''}${stat('Balance', balChip(x.balance))}</div>
   <h2>Attendance</h2>
   ${past.length ? table(['Date', 'Topic', 'Status'], past.slice(0, 60).map((c) => {
@@ -541,7 +544,12 @@ const actions = {
   },
   async editGroup() {
     const v = await formModal('Edit group', groupFields(), G);
-    if (v) await db.put('groups', { ...G, ...v });
+    if (!v) return;
+    const changed = Number(v.fee) !== Number(G.fee || 0);
+    await db.put('groups', { ...G, ...v });
+    const others = S.students.filter((m) => Number(m.fee) !== Number(v.fee));
+    if (changed && v.fee > 0 && others.length && await ask(`Set ${others.length} ${lc(others.length === 1 ? T.member : pl(T.member))} to ${money(v.fee)} per ${lc(T.session)}? This also changes what past ${lc(pl(T.session))} cost them.`, 'Apply to everyone'))
+      for (const m of others) await db.put('students', { ...m, fee: v.fee });
     await refresh();
   },
   async delGroup() {

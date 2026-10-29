@@ -17,7 +17,8 @@ Class Pouch is a group app for classes and hobbies such as art, dance, sports, m
 - **Member preview**: see exactly what one member or their parent would see: next session, their own attendance, dues and photos.
 - **Dashboard**: pending fees with an overdue count, today's attendance rate, today's sessions, quick actions, the day's timeline, and the latest photos.
 - **Sessions and attendance**: add a session (name, date, start and end time, location), then tap members to mark them present.
-- **Members**: contact details, guardian, fee per session, active or inactive, notes, and a profile with full history.
+- **Group fee**: set one fee per session for the whole group; new members get it, and changing it can update everyone.
+- **Members**: contact details, guardian, fee per session (override for a different rate), active or inactive, notes, and a profile with full history.
 - **Payments**: record payments as **prepaid** (with the number of sessions covered) or **after attending**. Payments can be edited. The app tracks prepaid sessions left and who owes money.
 - **Photos**: upload photos for each member, with a title and tag. Photos are resized automatically.
 - **Books**: monthly income and expenses for each group, all-time totals, and CSV export.

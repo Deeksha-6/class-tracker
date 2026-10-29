@@ -190,3 +190,4 @@ a.btn.soft { background: var(--accent-soft); color: var(--accent); }
 .teal-tile { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 .teal-tile .label, .teal-tile .num { color: inherit; }
 .teal-tile .num { font-size: 26px; }
+label > .mu { display: block; margin: -4px 0 10px; }
